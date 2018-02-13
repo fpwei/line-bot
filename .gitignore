@@ -6,5 +6,5 @@ out/
 build/
 
 
-*dev.yml
-application.yml
+*dev.properties
+application.properties
