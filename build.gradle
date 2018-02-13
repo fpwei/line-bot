@@ -1,0 +1,54 @@
+apply plugin: 'java'
+
+buildscript {
+    ext {
+        springBootVersion = '1.5.10.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+subprojects {
+    apply plugin: 'idea'
+    apply plugin: 'org.springframework.boot'
+
+    group = 'org.fpwei'
+    version = '1.0.0-SNAPSHOT'
+
+    ext {
+        springBootVersion = '1.5.10.RELEASE'
+        powermockVersion = '2.0.0-beta.5'
+    }
+
+    plugins.withType(JavaPlugin) {
+        sourceCompatibility = 1.8
+
+        repositories {
+            mavenCentral()
+        }
+
+        ext.springBootVersion="1.5.10.RELEASE"
+        ext{
+            powermockVersion='2.0.0-beta.5'
+        }
+
+        dependencies {
+            compile "org.springframework.boot:spring-boot-starter:${springBootVersion}"
+
+            testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+
+            compile group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
+
+            compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+
+            testCompile 'junit:junit:4.12'
+            testCompile "org.powermock:powermock-module-junit4:${powermockVersion}"
+            testCompile "org.powermock:powermock-api-mockito2:${powermockVersion}"
+            testCompile group: 'org.mockito', name: 'mockito-core', version: '2.15.0'
+        }
+    }
+}

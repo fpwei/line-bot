@@ -1,0 +1,10 @@
+/.gradle/
+/.idea/
+out/
+*.iml
+*.log
+build/
+
+
+*dev.yml
+application.yml
