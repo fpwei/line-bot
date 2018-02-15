@@ -18,56 +18,56 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.fpwei.line.core.dao.ImageDao;
-import org.fpwei.line.core.dao.PostDao;
 import org.fpwei.line.core.entity.Image;
+import org.fpwei.line.server.annotation.Command;
+import org.reflections.Reflections;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Slf4j
 @LineMessageHandler
-public class LineController {
+public class LineController implements ApplicationContextAware {
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     @Autowired
     private LineMessagingClient lineMessagingClient;
 
     @Autowired
-    private PostDao postDao;
-
-    @Autowired
     private ImageDao imageDao;
+
+    private ApplicationContext applicationContext;
+    private Reflections ref = new Reflections("org.fpwei.line.server.handler");
 
 
     @EventMapping
     public void handleTextMessageEvent(MessageEvent<TextMessageContent> event) {
-        String text = event.getMessage().getText();
+        String text = event.getMessage().getText().trim();
 
-        if (StringUtils.equalsAnyIgnoreCase(text, "beauty", "表特")) {
-            List<Integer> postIds = postDao.queryPostIdByRandom(10);
-
-            List<Image> images = postIds.stream()
-                    .map(i -> imageDao.findFirstByPostId(i))
-                    .collect(Collectors.toList());
+        int splitIndex = text.indexOf(" ");
+        String command = (splitIndex == -1) ? text : text.substring(0, splitIndex);
+        String parameter = (splitIndex == -1) ? "" : text.substring(splitIndex + 1);
 
 
-            List<ImageCarouselColumn> columns = images.stream()
-                    .map(image -> {
-                        String url = generateImageUrl(image.getPath());
-                        Action action = new PostbackAction("View More", String.valueOf(image.getPost().getId()));
-                        return new ImageCarouselColumn(url, action);
-                    })
-                    .collect(Collectors.toList());
+        Optional<Class<?>> clazz = ref.getTypesAnnotatedWith(Command.class).parallelStream()
+                .filter(c -> StringUtils.equalsAnyIgnoreCase(command, c.getAnnotation(Command.class).value()))
+                .findAny();
 
-
-            ImageCarouselTemplate template = new ImageCarouselTemplate(columns);
-
-            reply(event.getReplyToken(), new TemplateMessage("隨選表特正妹", template));
+        if (clazz.isPresent()) {
+            Object obj = applicationContext.getBean(clazz.get());
+            if (obj instanceof org.fpwei.line.server.handler.Command) {
+                Message message = ((org.fpwei.line.server.handler.Command) obj).execute(parameter);
+                reply(event.getReplyToken(), message);
+            }
         }
     }
 
@@ -145,5 +145,10 @@ public class LineController {
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 }

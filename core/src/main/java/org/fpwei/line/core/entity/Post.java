@@ -37,7 +37,7 @@ public class Post {
     @Transient
     private String nrec;
 
-    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Image> images;
 
 
