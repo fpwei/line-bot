@@ -1,25 +1,26 @@
 package org.fpwei.line.server.enums;
 
-public enum BeautyParameter implements Parameter {
-    NUMBER("n"), RECENT("r"), POST("p");
+public enum ImageParameter implements Parameter {
+    POST("p"), PAGE("n");
 
-    private final String value;
+    private String value;
 
-    BeautyParameter(String value) {
+    ImageParameter(String value) {
         this.value = value;
     }
 
     public static Parameter getParameter(String value) {
         switch (value) {
-            case "n":
-                return NUMBER;
-            case "r":
-                return RECENT;
             case "p":
                 return POST;
+            case "n":
+                return PAGE;
             default:
                 throw new UnsupportedOperationException();
         }
     }
 
+    public String getValue() {
+        return "-" + value;
+    }
 }

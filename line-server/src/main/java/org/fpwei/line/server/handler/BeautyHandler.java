@@ -12,6 +12,7 @@ import org.fpwei.line.core.entity.Image;
 import org.fpwei.line.core.entity.Post;
 import org.fpwei.line.server.annotation.Command;
 import org.fpwei.line.server.enums.BeautyParameter;
+import org.fpwei.line.server.enums.ImageParameter;
 import org.fpwei.line.server.enums.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -55,7 +56,8 @@ public class BeautyHandler extends AbstractCommandHandler {
         List<ImageCarouselColumn> columns = images.stream()
                 .map(image -> {
                     String url = generateImageUrl(image.getPath());
-                    Action action = new PostbackAction("View More", String.valueOf(image.getPost().getId()));
+                    String data = String.format("image %s %d", ImageParameter.POST.getValue(), image.getPost().getId());
+                    Action action = new PostbackAction("View More", data);
                     return new ImageCarouselColumn(url, action);
                 })
                 .collect(Collectors.toList());
