@@ -42,7 +42,7 @@ public class InstagramHandler extends AbstractCommandHandler {
             if (user == null) {
                 return new TextMessage("無法取得 " + account + " 相關資料");
             } else {
-                if (parameterMap.containsKey(InstagramParameter.RECENT)) {
+                if (parameterMap.containsKey(InstagramParameter.COLLECTION)) {
                     List<Edge> edges = user.getEdgeOwnerToTimelineMedia().getEdges().stream()
                             .filter(edge -> !edge.getNode().isVideo())
                             .sorted((e1, e2) -> e2.getNode().getEdgeMediaPreviewLike().getCount() - e1.getNode().getEdgeMediaPreviewLike().getCount())
@@ -50,15 +50,37 @@ public class InstagramHandler extends AbstractCommandHandler {
 
                     if (edges.size() > 10) {
                         edges = edges.subList(0, 10);
+                    } else if (edges.size() == 0) {
+                        return new TextMessage("沒有公開貼文");
                     }
+
+
                     List<ImageCarouselColumn> columns = edges.stream()
                             .map(edge -> {
-                                PostbackAction action = new PostbackAction(null, "null");
+                                URIAction action = new URIAction(null, getEdgeUrl(account, edge.getNode().getShortcode()));
                                 return new ImageCarouselColumn(edge.getNode().getDisplayUrl(), action);
                             }).collect(Collectors.toList());
 
-                    return new TemplateMessage(user.getFullName() + " top 10", new ImageCarouselTemplate(columns));
+                    return new TemplateMessage(user.getFullName() + " 精選貼文", new ImageCarouselTemplate(columns));
 
+                } else if (parameterMap.containsKey(InstagramParameter.RECENT)) {
+                    List<Edge> edges = user.getEdgeOwnerToTimelineMedia().getEdges().stream()
+                            .filter(edge -> !edge.getNode().isVideo())
+                            .collect(Collectors.toList());
+
+                    if (edges.size() > 10) {
+                        edges = edges.subList(0, 10);
+                    } else if (edges.size() == 0) {
+                        return new TextMessage("沒有公開貼文");
+                    }
+
+                    List<ImageCarouselColumn> columns = edges.stream()
+                            .map(edge -> {
+                                URIAction action = new URIAction(null, getEdgeUrl(account, edge.getNode().getShortcode()));
+                                return new ImageCarouselColumn(edge.getNode().getDisplayUrl(), action);
+                            }).collect(Collectors.toList());
+
+                    return new TemplateMessage(user.getFullName() + " 最新貼文", new ImageCarouselTemplate(columns));
                 } else {
                     String content = String.format("貼文：%d, 粉絲：%d\n%s", user.getEdgeOwnerToTimelineMedia().getCount(),
                             user.getEdgeFollowedBy().getCount(), user.getBiography());
@@ -66,7 +88,8 @@ public class InstagramHandler extends AbstractCommandHandler {
                         content = content.substring(0, 57) + "...";
                     }
                     ButtonsTemplate template = new ButtonsTemplate(user.getProfilePicUrlHd(), user.getFullName(), content,
-                            Arrays.asList(new PostbackAction("Top 10 Post", "IG " + account + " " + InstagramParameter.RECENT.getValue()),
+                            Arrays.asList(new PostbackAction("最新貼文", "IG " + account + " " + InstagramParameter.RECENT.getValue()),
+                                    new PostbackAction("精選貼文", "IG " + account + " " + InstagramParameter.COLLECTION.getValue()),
                                     new URIAction("IG", INSTAGRAM_BASE_URI + account)));
 
                     return new TemplateMessage(user.getFullName() + " " + user.getBiography(), template);
@@ -117,8 +140,6 @@ public class InstagramHandler extends AbstractCommandHandler {
             }
 
             return graphql.getUser();
-//            List<Edge> edges = user.getEdgeOwnerToTimelineMedia().getEdges();
-//            edges.sort((e1, e2) -> e2.getNode().getEdgeMediaPreviewLike().getCount() - e1.getNode().getEdgeMediaPreviewLike().getCount());
         } else {
             log.warn("Parse \"graphql\" error");
             return null;
@@ -133,5 +154,9 @@ public class InstagramHandler extends AbstractCommandHandler {
     @Override
     protected Parameter getDefaultParameter() {
         return InstagramParameter.ACCOUNT;
+    }
+
+    private String getEdgeUrl(String account, String edgeCode) {
+        return String.format("https://www.instagram.com/p/%s/?taken-by=%s", edgeCode, account);
     }
 }

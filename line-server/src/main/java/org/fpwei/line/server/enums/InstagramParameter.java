@@ -1,7 +1,7 @@
 package org.fpwei.line.server.enums;
 
 public enum InstagramParameter implements Parameter{
-    ACCOUNT("a"), RECENT("r");
+    ACCOUNT("a"), RECENT("r"), COLLECTION("c");
 
     private String value;
 
@@ -15,6 +15,8 @@ public enum InstagramParameter implements Parameter{
                 return ACCOUNT;
             case "r":
                 return RECENT;
+            case "c":
+                return COLLECTION;
             default:
                 throw new UnsupportedOperationException();
         }
