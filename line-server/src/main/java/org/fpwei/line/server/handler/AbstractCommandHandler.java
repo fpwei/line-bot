@@ -35,14 +35,14 @@ public abstract class AbstractCommandHandler implements Command {
                 } else if (temp.length() == 1) {
                     if (index + 1 < arr.length && !arr[index + 1].startsWith("-")) {
                         parameterMap.put(getParameter(temp), arr[++index]);
-                    }else {
+                    } else {
                         parameterMap.put(getParameter(temp), null);
                     }
                 } else {
                     throw new CommonRuntimeException("Error format of parameter");
                 }
-            }else {
-                throw new CommonRuntimeException("Error format of parameter");
+            } else {
+                parameterMap.put(getDefaultParameter(), arr[index]);
             }
 
             ++index;
@@ -52,6 +52,10 @@ public abstract class AbstractCommandHandler implements Command {
     }
 
     protected abstract Parameter getParameter(String value);
+
+    protected Parameter getDefaultParameter() {
+        throw new CommonRuntimeException("Error format of parameter");
+    }
 
     protected abstract Message execute(Map<Parameter, Object> parameterMap);
 

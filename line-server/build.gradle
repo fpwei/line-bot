@@ -7,6 +7,7 @@ dependencies {
     compile (group: 'com.linecorp.bot', name: 'line-bot-spring-boot', version: '1.15.0'){
         exclude module:"spring-boot-starter-tomcat"
     }
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.11.2'
     compile group: 'org.reflections', name: 'reflections', version: '0.9.11'
     compile group: 'commons-io', name: 'commons-io', version: '2.6'
     providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: '4.0.0'
