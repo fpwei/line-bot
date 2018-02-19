@@ -49,7 +49,7 @@ public class User {
     @JsonProperty("has_requested_viewer")
     private boolean hasRequestedViewer;
 
-    private int id;
+    private long id;
 
     @JsonProperty("is_private")
     private boolean isPrivate;

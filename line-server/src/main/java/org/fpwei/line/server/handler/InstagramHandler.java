@@ -7,11 +7,12 @@ import com.linecorp.bot.model.action.URIAction;
 import com.linecorp.bot.model.message.Message;
 import com.linecorp.bot.model.message.TemplateMessage;
 import com.linecorp.bot.model.message.TextMessage;
-import com.linecorp.bot.model.message.template.ButtonsTemplate;
-import com.linecorp.bot.model.message.template.ImageCarouselColumn;
-import com.linecorp.bot.model.message.template.ImageCarouselTemplate;
+import com.linecorp.bot.model.message.template.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.fpwei.line.core.dao.InstagramDao;
+import org.fpwei.line.core.entity.Instagram;
 import org.fpwei.line.server.annotation.Command;
 import org.fpwei.line.server.enums.InstagramParameter;
 import org.fpwei.line.server.enums.Parameter;
@@ -20,18 +21,19 @@ import org.fpwei.line.server.instagram.model.Graphql;
 import org.fpwei.line.server.instagram.model.User;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Command({"IG"})
 public class InstagramHandler extends AbstractCommandHandler {
     private static final String INSTAGRAM_BASE_URI = "https://www.instagram.com/";
+
+    @Autowired
+    private InstagramDao instagramDao;
 
     @Override
     protected Message execute(Map<Parameter, Object> parameterMap) {
@@ -87,7 +89,8 @@ public class InstagramHandler extends AbstractCommandHandler {
                     if (content.length() > 60) {
                         content = content.substring(0, 57) + "...";
                     }
-                    ButtonsTemplate template = new ButtonsTemplate(user.getProfilePicUrlHd(), user.getFullName(), content,
+                    String title = StringUtils.isBlank(user.getFullName()) ? user.getUsername() : user.getFullName();
+                    ButtonsTemplate template = new ButtonsTemplate(user.getProfilePicUrlHd(), title, content,
                             Arrays.asList(new PostbackAction("最新貼文", "IG " + account + " " + InstagramParameter.RECENT.getValue()),
                                     new PostbackAction("精選貼文", "IG " + account + " " + InstagramParameter.COLLECTION.getValue()),
                                     new URIAction("IG", INSTAGRAM_BASE_URI + account)));
@@ -95,10 +98,37 @@ public class InstagramHandler extends AbstractCommandHandler {
                     return new TemplateMessage(user.getFullName() + " " + user.getBiography(), template);
                 }
             }
+        } else {
+
+            List<User> users = new ArrayList<>();
+            do {
+                List<Instagram> instagramList = instagramDao.findInstagramByRandom(10 - users.size());
+                users.addAll(instagramList.parallelStream()
+                        .map(i -> getAccountInfo(i.getAccount()))
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
+            } while (users.size() < 10);
+
+
+            List<CarouselColumn> columns = users.parallelStream()
+                    .map(user -> {
+                        String content = String.format("貼文：%d, 粉絲：%d\n%s", user.getEdgeOwnerToTimelineMedia().getCount(),
+                                user.getEdgeFollowedBy().getCount(), user.getBiography());
+                        if (content.length() > 60) {
+                            content = content.substring(0, 57) + "...";
+                        }
+
+                        String account = user.getUsername();
+                        String title = StringUtils.isBlank(user.getFullName()) ? user.getUsername() : user.getFullName();
+                        return new CarouselColumn(user.getProfilePicUrlHd(), title, content,
+                                Arrays.asList(new PostbackAction("最新貼文", "IG " + account + " " + InstagramParameter.RECENT.getValue()),
+                                        new PostbackAction("精選貼文", "IG " + account + " " + InstagramParameter.COLLECTION.getValue()),
+                                        new URIAction("IG", INSTAGRAM_BASE_URI + account)));
+                    })
+                    .collect(Collectors.toList());
+
+            return new TemplateMessage("隨選 IG 正妹", new CarouselTemplate(columns));
         }
-
-
-        return null;
     }
 
     private User getAccountInfo(String account) {
