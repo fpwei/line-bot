@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Getter
 @Setter
 public class User {
@@ -90,4 +93,11 @@ public class User {
 
     @JsonProperty("mutual_followers")
     private String mutualFollowers;
+
+    public List<Node> getTimelineImageNodes() {
+        return getEdgeOwnerToTimelineMedia().getEdges().stream()
+                .map(Edge::getNode)
+                .filter(node -> !node.isVideo())
+                .collect(Collectors.toList());
+    }
 }

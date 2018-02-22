@@ -16,8 +16,8 @@ import org.fpwei.line.core.entity.Instagram;
 import org.fpwei.line.server.annotation.Command;
 import org.fpwei.line.server.enums.InstagramParameter;
 import org.fpwei.line.server.enums.Parameter;
-import org.fpwei.line.server.instagram.model.Edge;
 import org.fpwei.line.server.instagram.model.Graphql;
+import org.fpwei.line.server.instagram.model.Node;
 import org.fpwei.line.server.instagram.model.User;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -45,41 +45,37 @@ public class InstagramHandler extends AbstractCommandHandler {
                 return new TextMessage("無法取得 " + account + " 相關資料");
             } else {
                 if (parameterMap.containsKey(InstagramParameter.COLLECTION)) {
-                    List<Edge> edges = user.getEdgeOwnerToTimelineMedia().getEdges().stream()
-                            .filter(edge -> !edge.getNode().isVideo())
-                            .sorted((e1, e2) -> e2.getNode().getEdgeMediaPreviewLike().getCount() - e1.getNode().getEdgeMediaPreviewLike().getCount())
-                            .collect(Collectors.toList());
+                    List<Node> nodes = user.getTimelineImageNodes();
+                    nodes.sort((n1, n2) -> n2.getEdgeMediaPreviewLike().getCount() - n1.getEdgeMediaPreviewLike().getCount());
 
-                    if (edges.size() > 10) {
-                        edges = edges.subList(0, 10);
-                    } else if (edges.size() == 0) {
+                    if (nodes.size() > 10) {
+                        nodes = nodes.subList(0, 10);
+                    } else if (nodes.size() == 0) {
                         return new TextMessage("沒有公開貼文");
                     }
 
 
-                    List<ImageCarouselColumn> columns = edges.stream()
-                            .map(edge -> {
-                                URIAction action = new URIAction(null, getEdgeUrl(account, edge.getNode().getShortcode()));
-                                return new ImageCarouselColumn(edge.getNode().getDisplayUrl(), action);
+                    List<ImageCarouselColumn> columns = nodes.stream()
+                            .map(node -> {
+                                URIAction action = new URIAction(null, getNodeUrl(account, node.getShortcode()));
+                                return new ImageCarouselColumn(node.getDisplayUrl(), action);
                             }).collect(Collectors.toList());
 
                     return new TemplateMessage(user.getFullName() + " 精選貼文", new ImageCarouselTemplate(columns));
 
                 } else if (parameterMap.containsKey(InstagramParameter.RECENT)) {
-                    List<Edge> edges = user.getEdgeOwnerToTimelineMedia().getEdges().stream()
-                            .filter(edge -> !edge.getNode().isVideo())
-                            .collect(Collectors.toList());
+                    List<Node> nodes = user.getTimelineImageNodes();
 
-                    if (edges.size() > 10) {
-                        edges = edges.subList(0, 10);
-                    } else if (edges.size() == 0) {
+                    if (nodes.size() > 10) {
+                        nodes = nodes.subList(0, 10);
+                    } else if (nodes.size() == 0) {
                         return new TextMessage("沒有公開貼文");
                     }
 
-                    List<ImageCarouselColumn> columns = edges.stream()
-                            .map(edge -> {
-                                URIAction action = new URIAction(null, getEdgeUrl(account, edge.getNode().getShortcode()));
-                                return new ImageCarouselColumn(edge.getNode().getDisplayUrl(), action);
+                    List<ImageCarouselColumn> columns = nodes.stream()
+                            .map(node -> {
+                                URIAction action = new URIAction(null, getNodeUrl(account, node.getShortcode()));
+                                return new ImageCarouselColumn(node.getDisplayUrl(), action);
                             }).collect(Collectors.toList());
 
                     return new TemplateMessage(user.getFullName() + " 最新貼文", new ImageCarouselTemplate(columns));
@@ -179,7 +175,7 @@ public class InstagramHandler extends AbstractCommandHandler {
                 log.warn("Parse \"graphql\" error");
                 return null;
             }
-            Graphql graphql = null;
+            Graphql graphql;
             try {
                 graphql = mapper.readValue(graphqlNode.toString(), Graphql.class);
             } catch (IOException e) {
@@ -194,6 +190,7 @@ public class InstagramHandler extends AbstractCommandHandler {
         }
     }
 
+
     @Override
     protected Parameter getParameter(String value) {
         return InstagramParameter.getParameter(value);
@@ -204,7 +201,7 @@ public class InstagramHandler extends AbstractCommandHandler {
         return InstagramParameter.ACCOUNT;
     }
 
-    private String getEdgeUrl(String account, String edgeCode) {
-        return String.format("https://www.instagram.com/p/%s/?taken-by=%s", edgeCode, account);
+    private String getNodeUrl(String account, String shortCode) {
+        return String.format("https://www.instagram.com/p/%s/?taken-by=%s", shortCode, account);
     }
 }
