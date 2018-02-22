@@ -84,6 +84,8 @@ public class InstagramHandler extends AbstractCommandHandler {
 
                     return new TemplateMessage(user.getFullName() + " 最新貼文", new ImageCarouselTemplate(columns));
                 } else {
+                    recordSearchTimes(user);
+
                     String content = String.format("貼文：%d, 粉絲：%d\n%s", user.getEdgeOwnerToTimelineMedia().getCount(),
                             user.getEdgeFollowedBy().getCount(), user.getBiography());
                     if (content.length() > 60) {
@@ -128,6 +130,22 @@ public class InstagramHandler extends AbstractCommandHandler {
                     .collect(Collectors.toList());
 
             return new TemplateMessage("隨選 IG 正妹", new CarouselTemplate(columns));
+        }
+    }
+
+    private void recordSearchTimes(User user) {
+        if (!user.isPrivate() && user.getEdgeOwnerToTimelineMedia().getCount() > 100 && user.getEdgeFollowedBy().getCount() > 5000) {
+            String account = user.getUsername();
+            if (instagramDao.existsByAccount(account)) {
+                Instagram instagram = instagramDao.findByAccount(account);
+                instagram.setPriority(instagram.getPriority() + 1);
+                instagramDao.save(instagram);
+            } else {
+                Instagram instagram = new Instagram();
+                instagram.setAccount(account);
+                instagram.setStatus(0);
+                instagramDao.save(instagram);
+            }
         }
     }
 

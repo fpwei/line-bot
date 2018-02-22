@@ -11,4 +11,9 @@ public interface InstagramDao extends PagingAndSortingRepository<Instagram, Inte
 
     @Query(value = "SELECT * FROM instagram WHERE status = '1' ORDER BY RAND() LIMIT :rows", nativeQuery = true)
     List<Instagram> findInstagramByRandom(@Param("rows") int rows);
+
+    boolean existsByAccount(String account);
+
+    Instagram findByAccount(String account);
+
 }
